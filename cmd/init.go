@@ -1,3 +1,5 @@
+package cmd
+
 /*
 Copyright © 2021 NAME HERE <EMAIL ADDRESS>
 
@@ -13,14 +15,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
 
 import (
 	"fmt"
 	"log"
 	"net/url"
 	"os"
+	"time"
 
+	"github.com/artdarek/go-unzip"
+	"github.com/cavaliercoder/grab"
 	"github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +32,7 @@ import (
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize Ready files",
+	Short: "Initialize docker-compose and runtime files",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -45,26 +49,53 @@ to quickly create a Cobra application.`,
 		}
 
 		path = path + "/example"
-		readyPath := path + "/ready"
 
 		// Prepare the ready folder
 		// Download the runtime to use
 		// - ready init url/path
-		// - ready init github.com/user/ready-runtime
+		// - ready init https://download.link/to/runtime.zip
 		// - ready init /path/to/runtime
 		// Move the docker-compose file
 
-		os.Mkdir(readyPath, 0700)
-
 		if isUrl(runtime) {
 			// Download from url
+			readyPath := path + "/ready"
+			zipFile := path + "/runtime.zip"
+
+			grab.Get(zipFile, runtime)
+
+			uz := unzip.New(zipFile, readyPath)
+			err := uz.Extract()
+
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			os.RemoveAll(zipFile)
 		} else {
+			readyPath := path + "/ready"
+
+			os.Mkdir(readyPath, 0700)
+
 			if _, err := os.Stat(runtime); !os.IsNotExist(err) {
 				os.RemoveAll(readyPath)
 			}
 
 			copy.Copy(runtime, readyPath)
-			os.Rename(readyPath+"/docker-compose.yml", path+"/docker-compose.yml")
+
+			dockerComposeFile := path + "/docker-compose.yml"
+
+			if _, err := os.Stat(dockerComposeFile); !os.IsNotExist(err) {
+				t := time.Now()
+				formatted := fmt.Sprintf("%d%02d%02dT%02d%02d%02d",
+					t.Year(), t.Month(), t.Day(),
+					t.Hour(), t.Minute(), t.Second())
+				os.Rename(dockerComposeFile, dockerComposeFile+".bak"+formatted)
+			}
+
+			copy.Copy(readyPath+"/docker-compose.yml", dockerComposeFile)
+
+			// os.Rename(readyPath+"/docker-compose.yml", dockerComposeFile)
 		}
 	},
 }
