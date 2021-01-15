@@ -19,9 +19,8 @@ limitations under the License.
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"os"
-	"time"
+	"path/filepath"
 
 	"github.com/artdarek/go-unzip"
 	"github.com/cavaliercoder/grab"
@@ -57,14 +56,15 @@ to quickly create a Cobra application.`,
 		// - ready init /path/to/runtime
 		// Move the docker-compose file
 
-		if isUrl(runtime) {
+		if helper.IsRuntimeURL(runtime) {
 			// Download from url
 			readyPath := path + "/ready"
-			zipFile := path + "/runtime.zip"
+			tempZipFilePath := path + "/url-runtime-temp"
+			zipFile := tempZipFilePath + "/runtime.zip"
 
 			grab.Get(zipFile, runtime)
 
-			uz := unzip.New(zipFile, readyPath)
+			uz := unzip.New(zipFile, tempZipFilePath)
 			err := uz.Extract()
 
 			if err != nil {
@@ -72,30 +72,28 @@ to quickly create a Cobra application.`,
 			}
 
 			os.RemoveAll(zipFile)
+
+			globs, err := filepath.Glob(tempZipFilePath + "/*")
+			unzippedDir := globs[0]
+			runtimeDir := filepath.Base(unzippedDir)
+			runtimePath := readyPath + "/" + runtimeDir
+
+			copy.Copy(tempZipFilePath+"/"+runtimeDir, readyPath+"/"+runtimeDir)
+
+			os.RemoveAll(tempZipFilePath)
+
+			helper.BackupDockerComposeFile(path, runtimePath)
 		} else {
+
 			readyPath := path + "/ready"
+			runtimeName := filepath.Base(runtime)
+			runtimePath := readyPath + "/" + runtimeName
 
 			os.Mkdir(readyPath, 0700)
 
-			if _, err := os.Stat(runtime); !os.IsNotExist(err) {
-				os.RemoveAll(readyPath)
-			}
+			copy.Copy(runtime, runtimePath)
 
-			copy.Copy(runtime, readyPath)
-
-			dockerComposeFile := path + "/docker-compose.yml"
-
-			if _, err := os.Stat(dockerComposeFile); !os.IsNotExist(err) {
-				t := time.Now()
-				formatted := fmt.Sprintf("%d%02d%02dT%02d%02d%02d",
-					t.Year(), t.Month(), t.Day(),
-					t.Hour(), t.Minute(), t.Second())
-				os.Rename(dockerComposeFile, dockerComposeFile+".bak"+formatted)
-			}
-
-			copy.Copy(readyPath+"/docker-compose.yml", dockerComposeFile)
-
-			// os.Rename(readyPath+"/docker-compose.yml", dockerComposeFile)
+			helper.BackupDockerComposeFile(path, runtimePath)
 		}
 	},
 }
@@ -112,18 +110,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-func isUrl(urlToTest string) bool {
-	_, err := url.ParseRequestURI(urlToTest)
-	if err != nil {
-		return false
-	}
-
-	u, err := url.Parse(urlToTest)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return false
-	}
-
-	return true
 }
