@@ -20,9 +20,7 @@ services:
       dockerfile: Dockerfile
       args:
         WWWGROUP: "${WWWGROUP:-1000}"
-    image: ready-php80/app
-    # ports:
-    #   - "${APP_PORT:-80}:80"
+    image: ready-php80-runtime/app
     environment:
       WWWUSER: "${WWWUSER:-1000}"
     volumes:
@@ -34,7 +32,7 @@ services:
       - redis
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=Host(`notready.local`)"
+      - "traefik.http.routers.app.rule=Host(`example.localhost`)"
       - "traefik.docker.network=ready"
   mysql:
     image: "mysql:8.0"

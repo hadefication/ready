@@ -22,6 +22,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hadefication/ready/lib"
+
 	"github.com/artdarek/go-unzip"
 	"github.com/cavaliercoder/grab"
 	"github.com/otiai10/copy"
@@ -49,14 +51,7 @@ to quickly create a Cobra application.`,
 
 		path = path + "/example"
 
-		// Prepare the ready folder
-		// Download the runtime to use
-		// - ready init url/path
-		// - ready init https://download.link/to/runtime.zip
-		// - ready init /path/to/runtime
-		// Move the docker-compose file
-
-		if helper.IsRuntimeURL(runtime) {
+		if lib.IsRuntimeURL(runtime) {
 			// Download from url
 			readyPath := path + "/ready"
 			tempZipFilePath := path + "/url-runtime-temp"
@@ -82,7 +77,7 @@ to quickly create a Cobra application.`,
 
 			os.RemoveAll(tempZipFilePath)
 
-			helper.BackupDockerComposeFile(path, runtimePath)
+			lib.BackupDockerComposeFile(path, runtimePath)
 		} else {
 
 			readyPath := path + "/ready"
@@ -93,21 +88,11 @@ to quickly create a Cobra application.`,
 
 			copy.Copy(runtime, runtimePath)
 
-			helper.BackupDockerComposeFile(path, runtimePath)
+			lib.BackupDockerComposeFile(path, runtimePath)
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// initCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
