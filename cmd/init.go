@@ -34,17 +34,25 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize docker-compose and runtime files",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Long: `This command will initialize supplied runtime to the current 
+working directory. The runtime should contain at least
+a docker-compose.yml file.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+You can either supply a path or a URL for the runtime.
+URL runtimes must be a zip file of a directory
+that contains the docker-compose.yml.
+`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Initializing Ready files")
+		if len(args) == 0 {
+			fmt.Println(lib.Fatal("Definitely not ready, no runtime is supplied."))
+			return
+		}
 
 		runtime := args[0]
 		path, err := os.Getwd()
+
+		fmt.Println(lib.Info("Initializing Ready files"))
+
 		if err != nil {
 			log.Println(err)
 		}
